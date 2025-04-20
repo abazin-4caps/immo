@@ -1,9 +1,18 @@
 'use client'
 
-import { Project } from '@prisma/client'
 import Link from 'next/link'
 
-type ProjectStatus = 'DRAFT' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+type ProjectStatus = 'DRAFT' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED'
+
+interface Project {
+  id: string
+  title: string
+  description: string | null
+  address: string
+  status: string
+  createdAt: Date
+  updatedAt: Date
+}
 
 const statusColors: Record<ProjectStatus, string> = {
   DRAFT: 'bg-gray-100 text-gray-800',
