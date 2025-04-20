@@ -41,23 +41,81 @@ export async function POST(
       return new NextResponse('Unauthorized', { status: 401 })
     }
 
-    // TODO: Implémenter le stockage de fichiers (par exemple avec AWS S3)
-    // Pour l'instant, on simule un stockage avec une URL temporaire
+    // Convertir le fichier en buffer pour l'upload
+    const bytes = await file.arrayBuffer()
+    const buffer = Buffer.from(bytes)
+
+    // Upload vers Cloudinary
+    const uploadResponse = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: `projects/${params.id}`,
+          resource_type: 'auto',
+        },
+        (error, result) => {
+          if (error) reject(error)
+          else resolve(result)
+        }
+      )
+
+      const bufferStream = require('stream').Readable.from(buffer)
+      bufferStream.pipe(uploadStream)
+    })
+
+    // Créer l'entrée dans la base de données avec l'URL Cloudinary
     const document = await prisma.document.create({
       data: {
         name: file.name,
-        url: `/temp/${file.name}`, // À remplacer par l'URL réelle
         type: file.type,
-        project: { connect: { id: params.id } },
+        url: (uploadResponse as any).secure_url,
+        projectId: params.id,
       },
     })
 
-    return new NextResponse(JSON.stringify(document))
+    return NextResponse.json(document)
   } catch (error) {
     console.error('Erreur lors de l\'upload du document:', error)
     return new NextResponse(
-      JSON.stringify({ error: 'Erreur serveur' }),
+      JSON.stringify({ error: 'Erreur lors de l\'upload du fichier' }),
       { status: 500 }
     )
+  }
+}
+
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return new NextResponse('Unauthorized', { status: 401 })
+    }
+
+    // Vérifier que l'utilisateur a accès au projet
+    const projectActor = await prisma.projectActor.findFirst({
+      where: {
+        projectId: params.id,
+        userId: session.user.id,
+      },
+    })
+
+    if (!projectActor) {
+      return new NextResponse('Unauthorized', { status: 401 })
+    }
+
+    const documents = await prisma.document.findMany({
+      where: {
+        projectId: params.id,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+
+    return NextResponse.json(documents)
+  } catch (error) {
+    console.error('Erreur lors de la récupération des documents:', error)
+    return new NextResponse('Internal Server Error', { status: 500 })
   }
 } 
