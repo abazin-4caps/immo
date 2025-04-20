@@ -66,7 +66,7 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
         return;
       }
 
-      const response = await fetch('/api/documents/delete', {
+      const response = await fetch('/api/delete-document', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
