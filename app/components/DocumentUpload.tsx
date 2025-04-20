@@ -57,23 +57,59 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
   const handleDelete = async (documentId: string) => {
     try {
       setError(null);
-      console.log('Deleting document:', documentId);
+      console.log('Starting deletion process for document:', documentId);
       
-      const response = await fetch(`/api/projects/${projectId}/documents/${documentId}`, {
-        method: 'DELETE',
-      });
-
-      const text = await response.text();
-      console.log('Delete response:', response.status, text);
-
-      if (!response.ok) {
-        throw new Error(`Delete failed: ${text}`);
+      if (!documentId) {
+        throw new Error('Document ID is missing');
       }
 
+      if (!projectId) {
+        throw new Error('Project ID is missing');
+      }
+
+      const url = `/api/projects/${projectId}/documents/${documentId}`;
+      console.log('Sending DELETE request to:', url);
+      
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      let errorMessage = 'Erreur lors de la suppression du document.';
+      
+      try {
+        const text = await response.text();
+        console.log('Delete response:', {
+          status: response.status,
+          statusText: response.statusText,
+          text: text
+        });
+
+        if (text) {
+          try {
+            const json = JSON.parse(text);
+            if (json.error) {
+              errorMessage = json.error;
+            }
+          } catch (e) {
+            errorMessage = text;
+          }
+        }
+      } catch (e) {
+        console.error('Error reading response:', e);
+      }
+
+      if (!response.ok) {
+        throw new Error(errorMessage);
+      }
+
+      console.log('Document successfully deleted');
       onDocumentAdded?.();
     } catch (error) {
-      console.error('Error deleting document:', error);
-      setError('Erreur lors de la suppression du document. Veuillez réessayer.');
+      console.error('Error in handleDelete:', error);
+      setError(error instanceof Error ? error.message : 'Erreur lors de la suppression du document. Veuillez réessayer.');
     }
   };
 
