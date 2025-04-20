@@ -66,14 +66,12 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
         return;
       }
 
-      const url = `/api/projects/${projectId}/documents/${documentId}/delete`;
-      console.log('Sending POST request to:', url);
-      
-      const response = await fetch(url, {
+      const response = await fetch('/api/documents/delete', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ documentId, projectId }),
       });
 
       console.log('Response status:', response.status);
