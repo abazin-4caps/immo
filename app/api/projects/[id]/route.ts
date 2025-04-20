@@ -52,7 +52,7 @@ export async function GET(
     // Transformer les commentaires pour inclure authorName
     const transformedProject = {
       ...project,
-      comments: project.comments.map(comment => ({
+      comments: project.comments.map((comment: { author: { name: string } }) => ({
         ...comment,
         authorName: comment.author.name,
       })),
@@ -126,7 +126,7 @@ export async function PATCH(
     // Transformer les commentaires pour inclure authorName
     const transformedProject = {
       ...project,
-      comments: project.comments.map(comment => ({
+      comments: project.comments.map((comment: { author: { name: string } }) => ({
         ...comment,
         authorName: comment.author.name,
       })),
