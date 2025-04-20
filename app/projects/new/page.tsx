@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ProjectStatus } from '@/types/project'
+
+type ProjectStatus = 'DRAFT' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
 
 export default function NewProjectPage() {
   const router = useRouter()
