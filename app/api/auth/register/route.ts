@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
-import { hashPassword } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
     // Vérification si l'utilisateur existe déjà
     const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
     })
 
     if (existingUser) {
@@ -28,24 +28,27 @@ export async function POST(request: Request) {
       )
     }
 
+    // Hashage du mot de passe
+    const hashedPassword = await bcrypt.hash(password, 10)
+
     // Création de l'utilisateur
-    const hashedPassword = await hashPassword(password)
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-      }
+        role: 'USER',
+      },
     })
 
     // On ne renvoie pas le mot de passe
     const { password: _, ...userWithoutPassword } = user
 
-    return NextResponse.json(userWithoutPassword)
+    return NextResponse.json(userWithoutPassword, { status: 201 })
   } catch (error) {
     console.error('Erreur lors de l\'inscription:', error)
     return NextResponse.json(
-      { error: 'Erreur lors de l\'inscription' },
+      { error: 'Une erreur est survenue lors de l\'inscription' },
       { status: 500 }
     )
   }

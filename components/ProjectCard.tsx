@@ -1,9 +1,10 @@
 'use client'
 
-import { Project, ProjectStatus } from '@prisma/client'
+import { Project } from '@prisma/client'
+import { ProjectStatus } from '@/types/project'
 import Link from 'next/link'
 
-const statusColors = {
+const statusColors: Record<ProjectStatus, string> = {
   DRAFT: 'bg-gray-100 text-gray-800',
   ACTIVE: 'bg-green-100 text-green-800',
   ON_HOLD: 'bg-yellow-100 text-yellow-800',
@@ -11,7 +12,7 @@ const statusColors = {
   CANCELLED: 'bg-red-100 text-red-800',
 }
 
-const statusLabels = {
+const statusLabels: Record<ProjectStatus, string> = {
   DRAFT: 'Brouillon',
   ACTIVE: 'Actif',
   ON_HOLD: 'En pause',
@@ -38,10 +39,10 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         </div>
         <span
           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            statusColors[project.status]
+            statusColors[project.status as ProjectStatus]
           }`}
         >
-          {statusLabels[project.status]}
+          {statusLabels[project.status as ProjectStatus]}
         </span>
       </div>
       <div className="mt-4 flex justify-between items-center">

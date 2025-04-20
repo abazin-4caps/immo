@@ -1,14 +1,18 @@
-import './globals.css'
-import { Inter } from 'next/font/google'
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
 import Navbar from '@/components/Navbar'
 import { NextAuthProvider } from '@/components/Providers'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+});
 
-export const metadata = {
-  title: 'Plateforme de Projets Immobiliers',
-  description: 'Gérez vos projets immobiliers efficacement',
-}
+export const metadata: Metadata = {
+  title: "Immo - Gestion de projets immobiliers",
+  description: "Application de gestion de projets immobiliers",
+};
 
 export default function RootLayout({
   children,
@@ -16,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="fr">
-      <body className={inter.className}>
+    <html lang="fr" className={inter.className}>
+      <body>
         <NextAuthProvider>
           <Navbar />
           <main className="container mx-auto px-4 py-8">

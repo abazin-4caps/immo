@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ProjectStatus } from '@prisma/client'
+import { ProjectStatus } from '@/types/project'
 
 export default function NewProjectPage() {
   const router = useRouter()
