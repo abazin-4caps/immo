@@ -76,32 +76,27 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
         },
       });
 
-      console.log('Delete response:', {
-        status: response.status,
-        statusText: response.statusText
-      });
+      console.log('Response status:', response.status);
+      console.log('Response status text:', response.statusText);
 
-      // Succès - status 204
-      if (response.status === 204) {
+      const text = await response.text();
+      console.log('Response text:', text);
+
+      if (response.ok) {
         console.log('Document successfully deleted');
         onDocumentAdded?.();
-        return;
-      }
-
-      // Gestion des erreurs
-      let errorMessage = 'Erreur lors de la suppression du document.';
-      
-      if (response.headers.get('content-type')?.includes('application/json')) {
-        const data = await response.json();
-        console.log('Error response data:', data);
-        errorMessage = data.error || errorMessage;
       } else {
-        const text = await response.text();
-        console.log('Error response text:', text);
-        errorMessage = text || errorMessage;
+        let errorMessage = 'Erreur lors de la suppression du document.';
+        try {
+          const data = JSON.parse(text);
+          if (data.error) {
+            errorMessage = data.error;
+          }
+        } catch (e) {
+          console.error('Error parsing response:', e);
+        }
+        throw new Error(errorMessage);
       }
-
-      throw new Error(errorMessage);
     } catch (error) {
       console.error('Error in handleDelete:', error);
       setError(error instanceof Error ? error.message : 'Erreur lors de la suppression du document. Veuillez réessayer.');
