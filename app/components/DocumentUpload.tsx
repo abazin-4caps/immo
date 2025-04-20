@@ -77,35 +77,39 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
         },
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response status text:', response.statusText);
+
+      // Si le statut est 204, c'est un succès sans contenu
+      if (response.status === 204) {
+        console.log('Document successfully deleted');
+        onDocumentAdded?.();
+        return;
+      }
+
+      // Pour tous les autres cas, on essaie de lire la réponse
       let errorMessage = 'Erreur lors de la suppression du document.';
       
-      try {
-        const text = await response.text();
-        console.log('Delete response:', {
-          status: response.status,
-          statusText: response.statusText,
-          text: text
-        });
+      const text = await response.text();
+      console.log('Response text:', text);
 
-        if (text) {
-          try {
-            const json = JSON.parse(text);
-            if (json.error) {
-              errorMessage = json.error;
-            }
-          } catch (e) {
-            errorMessage = text;
+      if (text) {
+        try {
+          const json = JSON.parse(text);
+          console.log('Parsed JSON response:', json);
+          if (json.error) {
+            errorMessage = json.error;
           }
+        } catch (e) {
+          console.log('Failed to parse JSON response:', e);
+          errorMessage = text;
         }
-      } catch (e) {
-        console.error('Error reading response:', e);
       }
 
       if (!response.ok) {
         throw new Error(errorMessage);
       }
 
-      console.log('Document successfully deleted');
       onDocumentAdded?.();
     } catch (error) {
       console.error('Error in handleDelete:', error);
