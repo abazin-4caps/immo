@@ -21,13 +21,6 @@ export async function POST(
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
-    
-    if (!file) {
-      return new NextResponse('No file provided', { status: 400 });
-    }
-
     // Vérifier que l'utilisateur a accès au projet
     const projectActor = await prisma.projectActor.findFirst({
       where: {
@@ -40,24 +33,28 @@ export async function POST(
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Convertir le fichier en buffer
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+    
+    if (!file) {
+      return new NextResponse('No file provided', { status: 400 });
+    }
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Upload vers Cloudinary
-    const uploadResponse = await new Promise((resolve, reject) => {
+    // Upload du fichier à Cloudinary dans un dossier spécifique au projet
+    const result = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: `projects/${params.id}`,
-          resource_type: 'auto',
         },
         (error, result) => {
           if (error) reject(error);
-          else resolve(result);
+          resolve(result);
         }
       );
 
-      // Écrire le buffer dans le stream
       const bufferStream = require('stream').Readable.from(buffer);
       bufferStream.pipe(uploadStream);
     });
@@ -67,7 +64,7 @@ export async function POST(
       data: {
         name: file.name,
         type: file.type,
-        url: (uploadResponse as any).secure_url,
+        url: (result as any).secure_url,
         projectId: params.id,
       },
     });
