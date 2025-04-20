@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import DocumentUpload from '@/app/components/DocumentUpload'
 
 type Project = {
   id: string
@@ -13,6 +14,14 @@ type Project = {
   status: 'DRAFT' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED'
   createdAt: Date
   updatedAt: Date
+}
+
+type Document = {
+  id: string
+  name: string
+  type: string
+  url: string
+  createdAt: Date
 }
 
 const statusColors = {
@@ -31,14 +40,18 @@ const statusLabels = {
   CANCELLED: 'Annulé',
 }
 
+type TabType = 'details' | 'documents';
+
 export default function ProjectDetailsPage() {
   const { data: session } = useSession()
   const params = useParams()
   const router = useRouter()
   const [project, setProject] = useState<Project | null>(null)
+  const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [editedProject, setEditedProject] = useState<Project | null>(null)
+  const [activeTab, setActiveTab] = useState<TabType>('details')
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -60,8 +73,21 @@ export default function ProjectDetailsPage() {
       }
     }
 
+    const fetchDocuments = async () => {
+      try {
+        const response = await fetch(`/api/projects/${params.id}/documents`)
+        if (response.ok) {
+          const data = await response.json()
+          setDocuments(data)
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération des documents:', error)
+      }
+    }
+
     if (session && params.id) {
       fetchProject()
+      fetchDocuments()
     }
   }, [session, params.id, router])
 
@@ -244,40 +270,62 @@ export default function ProjectDetailsPage() {
               ) : (
                 <h1 className="text-2xl font-bold text-gray-900">{project.title}</h1>
               )}
-              {isEditing ? (
-                <select
-                  value={editedProject?.status}
-                  onChange={(e) =>
-                    setEditedProject(prev =>
-                      prev ? { ...prev, status: e.target.value as Project['status'] } : null
-                    )
-                  }
-                  className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                    statusColors[editedProject?.status || 'DRAFT']
-                  }`}
-                >
-                  {Object.entries(statusLabels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <span
-                  className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    statusColors[project.status]
-                  }`}
-                >
-                  {statusLabels[project.status]}
-                </span>
-              )}
+              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[project.status]}`}>
+                {statusLabels[project.status]}
+              </span>
             </div>
           </div>
-          <div className="border-t border-gray-200">
-            <dl>
-              <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Adresse</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex" aria-label="Tabs">
+              <button
+                onClick={() => setActiveTab('details')}
+                className={`${
+                  activeTab === 'details'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } w-1/4 py-4 px-1 text-center border-b-2 font-medium text-sm`}
+              >
+                Détails
+              </button>
+              <button
+                onClick={() => setActiveTab('documents')}
+                className={`${
+                  activeTab === 'documents'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } w-1/4 py-4 px-1 text-center border-b-2 font-medium text-sm`}
+              >
+                Documents
+              </button>
+            </nav>
+          </div>
+
+          <div className="px-4 py-5 sm:p-6">
+            {activeTab === 'details' ? (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">Description</h3>
+                  {isEditing ? (
+                    <textarea
+                      value={editedProject?.description || ''}
+                      onChange={(e) =>
+                        setEditedProject(prev =>
+                          prev ? { ...prev, description: e.target.value } : null
+                        )
+                      }
+                      rows={4}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                  ) : (
+                    <p className="mt-1 text-sm text-gray-600">
+                      {project.description || 'Aucune description'}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">Adresse</h3>
                   {isEditing ? (
                     <input
                       type="text"
@@ -287,53 +335,46 @@ export default function ProjectDetailsPage() {
                           prev ? { ...prev, address: e.target.value } : null
                         )
                       }
-                      className="w-full border-b border-gray-300 focus:border-blue-500 focus:outline-none"
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                   ) : (
-                    project.address
+                    <p className="mt-1 text-sm text-gray-600">{project.address}</p>
                   )}
-                </dd>
+                </div>
+
+                {!isEditing && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">Dates</h3>
+                    <dl className="mt-1 space-y-1">
+                      <div className="text-sm text-gray-600">
+                        <dt className="inline">Créé le : </dt>
+                        <dd className="inline">
+                          {new Date(project.createdAt).toLocaleDateString()}
+                        </dd>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <dt className="inline">Dernière modification : </dt>
+                        <dd className="inline">
+                          {new Date(project.updatedAt).toLocaleDateString()}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                )}
               </div>
-              <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Description</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {isEditing ? (
-                    <textarea
-                      value={editedProject?.description || ''}
-                      onChange={(e) =>
-                        setEditedProject(prev =>
-                          prev ? { ...prev, description: e.target.value } : null
-                        )
-                      }
-                      className="w-full border-b border-gray-300 focus:border-blue-500 focus:outline-none"
-                      rows={3}
-                    />
-                  ) : (
-                    project.description || 'Aucune description'
-                  )}
-                </dd>
-              </div>
-              <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Créé le</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {new Date(project.createdAt).toLocaleDateString('fr-FR', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                </dd>
-              </div>
-              <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Dernière modification</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {new Date(project.updatedAt).toLocaleDateString('fr-FR', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                </dd>
-              </div>
-            </dl>
+            ) : (
+              <DocumentUpload
+                projectId={project.id}
+                documents={documents}
+                onDocumentAdded={() => {
+                  // Rafraîchir la liste des documents
+                  fetch(`/api/projects/${params.id}/documents`)
+                    .then(response => response.json())
+                    .then(data => setDocuments(data))
+                    .catch(error => console.error('Erreur lors de la récupération des documents:', error))
+                }}
+              />
+            )}
           </div>
         </div>
       </div>

@@ -71,3 +71,6 @@ ntuser.*
 # prisma
 /prisma/dev.db
 /prisma/dev.db-journal
+
+.vercel
+.env*.local
