@@ -57,12 +57,17 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
   const handleDelete = async (documentId: string) => {
     try {
       setError(null);
+      console.log('Deleting document:', documentId);
+      
       const response = await fetch(`/api/projects/${projectId}/documents/${documentId}`, {
         method: 'DELETE',
       });
 
+      const text = await response.text();
+      console.log('Delete response:', response.status, text);
+
       if (!response.ok) {
-        throw new Error('Delete failed');
+        throw new Error(`Delete failed: ${text}`);
       }
 
       onDocumentAdded?.();
