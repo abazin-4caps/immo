@@ -52,9 +52,9 @@ export async function GET(
     // Transformer les commentaires pour inclure authorName
     const transformedProject = {
       ...project,
-      comments: project.comments.map((comment: { author: { name: string } }) => ({
+      comments: project.comments.map((comment: { author: { name: string | null } }) => ({
         ...comment,
-        authorName: comment.author.name,
+        authorName: comment.author.name || 'Anonyme',
       })),
     }
 
@@ -126,9 +126,9 @@ export async function PATCH(
     // Transformer les commentaires pour inclure authorName
     const transformedProject = {
       ...project,
-      comments: project.comments.map((comment: { author: { name: string } }) => ({
+      comments: project.comments.map((comment: { author: { name: string | null } }) => ({
         ...comment,
-        authorName: comment.author.name,
+        authorName: comment.author.name || 'Anonyme',
       })),
     }
 
