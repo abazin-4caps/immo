@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/auth.config';
-import prisma from '@/lib/prisma';
+import { authOptions } from '../auth/[...nextauth]/route';
+import prisma from '../../../lib/prisma';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';

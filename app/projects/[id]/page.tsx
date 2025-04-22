@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import DocumentUpload from '@/app/components/DocumentUpload'
+import DocumentUpload from '../../components/DocumentUpload'
 import { Document } from '@prisma/client'
 
 interface ProjectDocument {
