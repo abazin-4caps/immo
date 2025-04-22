@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../../../../../auth/auth.config';
-import prisma from '../../../../../../../lib/prisma';
+import { authOptions } from '@/app/api/auth/auth.config';
+import prisma from '@/lib/prisma';
 import { v2 as cloudinary } from 'cloudinary';
 
 export const dynamic = 'force-dynamic';
@@ -16,13 +16,13 @@ export async function GET(
   request: Request,
   { params }: { params: { id: string; documentId: string } }
 ) {
-  console.log('Download route called with params:', params);
+  console.log('Route de téléchargement appelée avec les paramètres:', params);
   
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      console.log('Download attempt without authentication');
-      return new NextResponse('Unauthorized', { status: 401 });
+      console.log('Tentative de téléchargement sans authentification');
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
     // Vérifier l'accès au projet
@@ -34,8 +34,8 @@ export async function GET(
     });
 
     if (!projectActor) {
-      console.log('User not authorized for project:', params.id);
-      return new NextResponse('Forbidden', { status: 403 });
+      console.log('Utilisateur non autorisé pour le projet:', params.id);
+      return NextResponse.json({ error: 'Accès non autorisé' }, { status: 403 });
     }
 
     // Récupérer le document
@@ -47,11 +47,11 @@ export async function GET(
     });
 
     if (!document) {
-      console.log('Document not found:', params.documentId);
-      return new NextResponse('Document not found', { status: 404 });
+      console.log('Document non trouvé:', params.documentId);
+      return NextResponse.json({ error: 'Document non trouvé' }, { status: 404 });
     }
 
-    console.log('Document found:', document);
+    console.log('Document trouvé:', document);
 
     // Extraire les informations de l'URL Cloudinary
     const urlParts = document.url.split('/');
@@ -60,7 +60,7 @@ export async function GET(
     const version = urlParts[uploadIndex + 1]; // 'v1234567890'
     const publicId = urlParts.slice(uploadIndex + 2).join('/');
 
-    console.log('Extracted info:', { publicId, version, resourceType });
+    console.log('Informations extraites:', { publicId, version, resourceType });
 
     try {
       // Générer une URL de téléchargement temporaire
@@ -78,39 +78,29 @@ export async function GET(
       );
 
       const downloadUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/upload/fl_attachment/${version}/${publicId}?timestamp=${timestamp}&signature=${signature}&api_key=${process.env.CLOUDINARY_API_KEY}`;
-      console.log('Generated download URL:', downloadUrl);
+      console.log('URL de téléchargement générée:', downloadUrl);
 
       // Rediriger vers l'URL de téléchargement
       return NextResponse.redirect(downloadUrl);
     } catch (cloudinaryError) {
-      console.error('Error generating download URL:', cloudinaryError);
-      return new NextResponse(
-        JSON.stringify({ 
-          error: 'Failed to generate download URL', 
-          details: cloudinaryError instanceof Error ? cloudinaryError.message : 'Unknown error'
-        }),
+      console.error('Erreur lors de la génération de l\'URL de téléchargement:', cloudinaryError);
+      return NextResponse.json(
         { 
-          status: 502,
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        }
+          error: 'Erreur lors de la génération de l\'URL de téléchargement',
+          details: cloudinaryError instanceof Error ? cloudinaryError.message : 'Erreur inconnue'
+        },
+        { status: 502 }
       );
     }
   } catch (error) {
-    console.error('Error in download route:', error);
-    return new NextResponse(
-      JSON.stringify({ 
-        error: 'Internal Server Error', 
-        details: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      }), 
+    console.error('Erreur dans la route de téléchargement:', error);
+    return NextResponse.json(
       { 
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      }
+        error: 'Erreur interne du serveur',
+        details: error instanceof Error ? error.message : 'Erreur inconnue',
+        stack: error instanceof Error ? error.stack : undefined
+      },
+      { status: 500 }
     );
   }
 } 
