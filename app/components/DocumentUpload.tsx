@@ -6,9 +6,11 @@ import { FaFilePdf, FaImage, FaFile, FaTrash, FaDownload, FaEye } from 'react-ic
 import { Document as PDFDocument, Page, pdfjs } from 'react-pdf';
 import Modal from './Modal';
 import { cn } from '../../lib/utils';
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/TextLayer.css';
 
-// Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+// Configuration du worker PDF.js avec le CDN officiel
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 interface Document {
   id: string;
