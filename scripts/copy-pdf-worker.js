@@ -3,7 +3,7 @@ const path = require('path');
 const https = require('https');
 
 const targetFile = path.join(__dirname, '../public/pdf.worker.min.js');
-const workerUrl = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.1.91/build/pdf.worker.min.js';
+const workerUrl = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.1.91/legacy/build/pdf.worker.min.js';
 
 // Créer le dossier public s'il n'existe pas
 if (!fs.existsSync(path.dirname(targetFile))) {
