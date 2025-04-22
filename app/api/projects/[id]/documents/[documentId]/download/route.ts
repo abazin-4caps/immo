@@ -54,6 +54,7 @@ export async function GET(
     console.log('Document found:', document);
 
     // Extract public ID and version from the URL
+    // Example: https://res.cloudinary.com/dcahaqjyt/raw/upload/v1234567890/folder/file.pdf
     const urlParts = document.url.split('/upload/');
     if (urlParts.length !== 2) {
       console.error('Invalid Cloudinary URL format:', document.url);
@@ -62,11 +63,15 @@ export async function GET(
 
     const pathParts = urlParts[1].split('/');
     const version = pathParts[0].replace('v', '');
-    const publicId = pathParts.slice(1).join('/').split('.')[0];
-    const extension = document.url.split('.').pop() || '';
-    const resourceType = extension.toLowerCase() === 'pdf' ? 'raw' : 'image';
+    // Keep the extension in the public ID
+    const publicId = pathParts.slice(1).join('/');
+    const extension = publicId.split('.').pop()?.toLowerCase() || '';
+    
+    // Determine resource type from the original URL
+    const originalResourceType = document.url.split('/')[3]; // Get 'raw' or 'image' from the URL
+    const resourceType = originalResourceType === 'raw' ? 'raw' : 'image';
 
-    console.log('Extracted info:', { publicId, version, resourceType, extension });
+    console.log('Extracted info:', { publicId, version, resourceType, extension, originalResourceType });
 
     // Generate timestamp for URL expiration (1 hour from now)
     const timestamp = Math.floor(Date.now() / 1000) + 3600;
@@ -86,8 +91,8 @@ export async function GET(
       process.env.CLOUDINARY_API_SECRET || ''
     );
 
-    // Construct the download URL
-    const downloadUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/upload/fl_attachment/v${version}/${publicId}.${extension}?timestamp=${timestamp}&signature=${signature}&api_key=${process.env.CLOUDINARY_API_KEY}`;
+    // Construct the download URL using the same resource type as the original URL
+    const downloadUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/upload/fl_attachment/v${version}/${publicId}?timestamp=${timestamp}&signature=${signature}&api_key=${process.env.CLOUDINARY_API_KEY}`;
 
     console.log('Generated download URL:', downloadUrl);
 
