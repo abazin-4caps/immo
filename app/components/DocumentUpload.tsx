@@ -403,7 +403,7 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
                 ) : selectedDocument.type.includes('pdf') ? (
                   <div className="flex flex-col items-center justify-center min-h-[70vh] bg-gray-50 relative">
                     <iframe
-                      src={`${selectedDocument.url}#toolbar=0&navpanes=0`}
+                      src={`/api/projects/${projectId}/documents/${selectedDocument.id}/download`}
                       className="w-full h-[70vh] rounded-lg"
                       style={{ border: 'none' }}
                     >
