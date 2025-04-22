@@ -2,6 +2,11 @@
 const nextConfig = {
   webpack: (config) => {
     config.externals = [...config.externals, 'bcrypt']
+    
+    // Configuration pour pdfjs-dist
+    config.resolve.alias.canvas = false;
+    config.resolve.alias.encoding = false;
+
     return config
   },
   // Ajout de la configuration pour les images Cloudinary
