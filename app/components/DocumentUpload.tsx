@@ -139,13 +139,13 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
       return 0;
     });
 
-  const uniqueTypes = ['all', ...new Set(documents.map(doc => {
+  const uniqueTypes = ['all', ...Array.from(new Set(documents.map(doc => {
     if (doc.type.startsWith('image/')) return 'image';
     if (doc.type.includes('pdf')) return 'pdf';
     if (doc.type.includes('document')) return 'document';
     if (doc.type.includes('spreadsheet')) return 'spreadsheet';
     return 'other';
-  }))];
+  })))];
 
   const getFileIcon = (type: string) => {
     if (type.startsWith('image/')) return '🖼️';
@@ -341,7 +341,7 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-            onClick={(e) => {
+            onClick={(e: React.MouseEvent<HTMLDivElement>) => {
               if (e.target === e.currentTarget) setSelectedDocument(null);
             }}
           >
