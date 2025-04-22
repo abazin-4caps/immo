@@ -16,7 +16,7 @@ interface Document {
   name: string;
   url: string;
   type: string;
-  createdAt: string;
+  createdAt: Date;
 }
 
 interface DocumentUploadProps {
