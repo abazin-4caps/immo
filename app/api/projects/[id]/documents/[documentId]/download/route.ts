@@ -57,57 +57,37 @@ export async function GET(
     const urlParts = document.url.split('/');
     const resourceType = urlParts[3]; // 'image' ou 'raw'
     const uploadIndex = urlParts.indexOf('upload');
+    const version = urlParts[uploadIndex + 1]; // 'v1234567890'
     const publicId = urlParts.slice(uploadIndex + 2).join('/');
 
-    console.log('Extracted info:', { publicId, resourceType });
+    console.log('Extracted info:', { publicId, version, resourceType });
 
-    // Obtenir une URL signée de Cloudinary
-    const timestamp = Math.floor(Date.now() / 1000);
-    const transformation = 'fl_attachment';
-    
-    const signedUrl = cloudinary.url(publicId, {
-      resource_type: resourceType as "image" | "raw",
-      type: 'upload',
-      sign_url: true,
-      secure: true,
-      transformation: [{ flags: 'attachment' }],
-      version: urlParts[uploadIndex + 1].replace('v', '')
-    });
-
-    console.log('Generated signed URL:', signedUrl);
-
-    // Récupérer le fichier avec l'URL signée
     try {
-      const response = await fetch(signedUrl);
-      
-      if (!response.ok) {
-        console.error('Failed to fetch file:', {
-          status: response.status,
-          statusText: response.statusText,
-          url: signedUrl
-        });
-        throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
-      }
+      // Générer une URL de téléchargement temporaire
+      const timestamp = Math.floor(Date.now() / 1000);
+      const signature = cloudinary.utils.api_sign_request(
+        {
+          public_id: publicId,
+          resource_type: resourceType,
+          type: 'upload',
+          timestamp,
+          flags: 'attachment',
+          version: version.replace('v', '')
+        },
+        process.env.CLOUDINARY_API_SECRET || ''
+      );
 
-      const contentType = response.headers.get('content-type');
-      const contentDisposition = `attachment; filename="${document.name}"`;
-      const arrayBuffer = await response.arrayBuffer();
+      const downloadUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/upload/fl_attachment/${version}/${publicId}?timestamp=${timestamp}&signature=${signature}&api_key=${process.env.CLOUDINARY_API_KEY}`;
+      console.log('Generated download URL:', downloadUrl);
 
-      // Renvoyer le fichier au client
-      return new NextResponse(arrayBuffer, {
-        headers: {
-          'Content-Type': contentType || 'application/octet-stream',
-          'Content-Disposition': contentDisposition,
-          'Content-Length': arrayBuffer.byteLength.toString()
-        }
-      });
-    } catch (fetchError) {
-      console.error('Error fetching file from Cloudinary:', fetchError);
+      // Rediriger vers l'URL de téléchargement
+      return NextResponse.redirect(downloadUrl);
+    } catch (cloudinaryError) {
+      console.error('Error generating download URL:', cloudinaryError);
       return new NextResponse(
         JSON.stringify({ 
-          error: 'Failed to fetch file', 
-          details: fetchError instanceof Error ? fetchError.message : 'Unknown error',
-          url: signedUrl
+          error: 'Failed to generate download URL', 
+          details: cloudinaryError instanceof Error ? cloudinaryError.message : 'Unknown error'
         }),
         { 
           status: 502,
