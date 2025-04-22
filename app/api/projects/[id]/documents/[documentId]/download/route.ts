@@ -57,23 +57,32 @@ export async function GET(
     const isPDF = document.url.toLowerCase().endsWith('.pdf');
     const resourceType = isPDF ? 'raw' : 'image';
 
-    // Extract public ID from the URL
-    const match = document.url.match(/\/v\d+\/(.+?)$/);
+    // Extract version and path from the URL
+    const match = document.url.match(/\/v(\d+)\/(.+)$/);
     if (!match) {
       console.error('Invalid Cloudinary URL format:', document.url);
       return new NextResponse('Invalid document URL', { status: 400 });
     }
 
-    const publicId = match[1].split('.')[0];
-    console.log('Extracted public ID:', publicId);
+    const [_, version, path] = match;
+    console.log('Extracted info:', { version, path, resourceType });
 
-    // Generate a signed URL with fl_attachment
-    const downloadUrl = cloudinary.url(publicId, {
+    // Generate timestamp and signature
+    const timestamp = Math.floor(Date.now() / 1000);
+    const toSign = {
+      timestamp,
       resource_type: resourceType,
-      flags: 'attachment',
-      sign_url: true,
-      type: 'authenticated'
-    });
+      type: 'upload',
+      version
+    };
+
+    const signature = cloudinary.utils.api_sign_request(
+      toSign,
+      process.env.CLOUDINARY_API_SECRET || ''
+    );
+
+    // Construct the download URL with attachment disposition
+    const downloadUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/upload/fl_attachment/v${version}/${path}?timestamp=${timestamp}&signature=${signature}&api_key=${process.env.CLOUDINARY_API_KEY}`;
 
     console.log('Generated download URL:', downloadUrl);
 
