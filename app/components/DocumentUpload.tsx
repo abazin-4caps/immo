@@ -9,9 +9,7 @@ import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
 // Configuration de worker pour react-pdf
-if (typeof window !== 'undefined') {
-  pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.js`;
-}
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.js';
 
 interface Document {
   id: string;
