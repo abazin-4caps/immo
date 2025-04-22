@@ -53,37 +53,38 @@ export async function GET(
 
     console.log('Document found:', document);
 
-    // Extraire les informations de l'URL Cloudinary
-    const urlParts = document.url.split('/');
-    const resourceType = urlParts[3]; // 'image' ou 'raw'
-    const uploadIndex = urlParts.indexOf('upload');
-    const version = urlParts[uploadIndex + 1]; // 'v1234567890'
-    const publicId = urlParts.slice(uploadIndex + 2).join('/');
+    // Récupérer le fichier depuis Cloudinary
+    try {
+      const response = await fetch(document.url);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
+      }
 
-    console.log('Extracted info:', { publicId, version, resourceType });
+      const contentType = response.headers.get('content-type');
+      const contentDisposition = `attachment; filename="${document.name}"`;
+      const arrayBuffer = await response.arrayBuffer();
 
-    // Générer le timestamp et la signature
-    const timestamp = Math.floor(Date.now() / 1000) + 3600; // Expire dans 1 heure
-    const toSign = {
-      public_id: publicId,
-      timestamp,
-      type: 'upload',
-      version: version.replace('v', '')
-    };
-
-    const signature = cloudinary.utils.api_sign_request(
-      toSign,
-      process.env.CLOUDINARY_API_SECRET || ''
-    );
-
-    // Construire l'URL de téléchargement
-    const downloadUrl = document.url.replace('/upload/', '/upload/fl_attachment/');
-    const finalUrl = `${downloadUrl}?timestamp=${timestamp}&signature=${signature}&api_key=${process.env.CLOUDINARY_API_KEY}`;
-
-    console.log('Generated download URL:', finalUrl);
-
-    // Rediriger vers l'URL de téléchargement
-    return NextResponse.redirect(finalUrl);
+      // Renvoyer le fichier au client
+      return new NextResponse(arrayBuffer, {
+        headers: {
+          'Content-Type': contentType || 'application/octet-stream',
+          'Content-Disposition': contentDisposition,
+          'Content-Length': arrayBuffer.byteLength.toString()
+        }
+      });
+    } catch (fetchError) {
+      console.error('Error fetching file from Cloudinary:', fetchError);
+      return new NextResponse(
+        JSON.stringify({ error: 'Failed to fetch file', details: fetchError instanceof Error ? fetchError.message : 'Unknown error' }),
+        { 
+          status: 502,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+    }
   } catch (error) {
     console.error('Error in download route:', error);
     return new NextResponse(
