@@ -2,14 +2,10 @@
 
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Document as PDFDocument, Page as PDFPage, pdfjs } from 'react-pdf';
 import { FaFilePdf, FaFileImage, FaFile, FaTrash, FaEye } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
 import Modal from './Modal';
-
-// Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
 
 interface Document {
   id: string;
@@ -30,8 +26,6 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
   const [error, setError] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [numPages, setNumPages] = useState<number | null>(null);
-  const [pageNumber, setPageNumber] = useState(1);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     setIsUploading(true);
@@ -107,12 +101,17 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
 
   const handlePreview = (document: Document) => {
     setSelectedDocument(document);
-    setPageNumber(1);
     setIsPreviewOpen(true);
   };
 
-  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-    setNumPages(numPages);
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
@@ -142,26 +141,31 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
             key={doc.id}
             className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3 flex-grow">
-                {getFileIcon(doc.type)}
-                <span className="text-sm font-medium truncate flex-grow">{doc.name}</span>
+            <div className="flex flex-col space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3 flex-grow min-w-0">
+                  {getFileIcon(doc.type)}
+                  <span className="text-sm font-medium truncate flex-grow">{doc.name}</span>
+                </div>
+                <div className="flex space-x-2 ml-2 shrink-0">
+                  <button
+                    onClick={() => handlePreview(doc)}
+                    className="p-1.5 text-gray-600 hover:text-blue-500 transition-colors"
+                    title="Prévisualiser"
+                  >
+                    <FaEye className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(doc.id)}
+                    className="p-1.5 text-gray-600 hover:text-red-500 transition-colors"
+                    title="Supprimer"
+                  >
+                    <FaTrash className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-              <div className="flex space-x-2 ml-2">
-                <button
-                  onClick={() => handlePreview(doc)}
-                  className="p-1.5 text-gray-600 hover:text-blue-500 transition-colors"
-                  title="Prévisualiser"
-                >
-                  <FaEye className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(doc.id)}
-                  className="p-1.5 text-gray-600 hover:text-red-500 transition-colors"
-                  title="Supprimer"
-                >
-                  <FaTrash className="w-4 h-4" />
-                </button>
+              <div className="text-xs text-gray-500">
+                Ajouté le {formatDate(doc.createdAt)}
               </div>
             </div>
           </div>
@@ -176,38 +180,11 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
         <div className="max-h-[80vh] overflow-y-auto">
           {selectedDocument && (
             selectedDocument.type.includes('pdf') ? (
-              <div>
-                <PDFDocument
-                  file={selectedDocument.url}
-                  onLoadSuccess={onDocumentLoadSuccess}
-                >
-                  <PDFPage
-                    pageNumber={pageNumber}
-                    width={800}
-                  />
-                </PDFDocument>
-                {numPages && numPages > 1 && (
-                  <div className="flex justify-center items-center mt-4 space-x-4">
-                    <button
-                      onClick={() => setPageNumber(Math.max(1, pageNumber - 1))}
-                      disabled={pageNumber <= 1}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-lg disabled:opacity-50"
-                    >
-                      Page précédente
-                    </button>
-                    <span>
-                      Page {pageNumber} sur {numPages}
-                    </span>
-                    <button
-                      onClick={() => setPageNumber(Math.min(numPages, pageNumber + 1))}
-                      disabled={pageNumber >= numPages}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-lg disabled:opacity-50"
-                    >
-                      Page suivante
-                    </button>
-                  </div>
-                )}
-              </div>
+              <iframe
+                src={selectedDocument.url}
+                className="w-full h-[80vh] border-0"
+                title={selectedDocument.name}
+              />
             ) : selectedDocument.type.includes('image') ? (
               <div className="flex justify-center">
                 <Image
