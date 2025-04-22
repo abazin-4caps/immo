@@ -114,6 +114,32 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
     }
   };
 
+  const handleDownload = async (doc: Document) => {
+    try {
+      setError(null);
+      const response = await fetch(`/api/projects/${projectId}/documents/${doc.id}/download`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors du téléchargement');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = doc.name;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      setError('Erreur lors du téléchargement du fichier. Veuillez réessayer.');
+    }
+  };
+
   const sortedAndFilteredDocuments = documents
     .filter(doc => {
       if (selectedType !== 'all' && !doc.type.includes(selectedType)) return false;
@@ -312,14 +338,13 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
                   >
                     <FiEye className="h-5 w-5" />
                   </button>
-                  <a
-                    href={doc.url}
-                    download
+                  <button
+                    onClick={() => handleDownload(doc)}
                     className="p-2 text-gray-400 hover:text-green-600 transition-colors"
                     title="Télécharger"
                   >
                     <FiDownload className="h-5 w-5" />
-                  </a>
+                  </button>
                   <button
                     onClick={() => handleDelete(doc.id)}
                     className="p-2 text-gray-400 hover:text-red-600 transition-colors"
@@ -376,39 +401,36 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
                     <div className="text-6xl mb-4">📄</div>
                     <p className="text-lg text-gray-600 mb-4">{selectedDocument.name}</p>
                     <p className="text-sm text-gray-500 mb-6">La prévisualisation n'est pas disponible pour les PDFs</p>
-                    <a
-                      href={selectedDocument.url}
-                      download
+                    <button
+                      onClick={() => handleDownload(selectedDocument)}
                       className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
                       <FiDownload className="mr-2 h-5 w-5" />
                       Télécharger le PDF
-                    </a>
+                    </button>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-[70vh] bg-gray-50">
                     <div className="text-6xl mb-4">{getFileIcon(selectedDocument.type)}</div>
                     <p className="text-lg text-gray-600 mb-4">{selectedDocument.name}</p>
                     <p className="text-sm text-gray-500 mb-6">La prévisualisation n'est pas disponible pour ce type de fichier</p>
-                    <a
-                      href={selectedDocument.url}
-                      download
+                    <button
+                      onClick={() => handleDownload(selectedDocument)}
                       className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
                       <FiDownload className="mr-2 h-5 w-5" />
                       Télécharger le fichier
-                    </a>
+                    </button>
                   </div>
                 )}
               </div>
               <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <a
-                  href={selectedDocument.url}
-                  download
+                <button
+                  onClick={() => handleDownload(selectedDocument)}
                   className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
                 >
                   Télécharger
-                </a>
+                </button>
                 <button
                   type="button"
                   className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
