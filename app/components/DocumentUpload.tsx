@@ -5,7 +5,7 @@ import { useDropzone } from 'react-dropzone';
 import { FaFilePdf, FaImage, FaFile, FaTrash, FaDownload, FaEye } from 'react-icons/fa';
 import { Document as PDFDocument, Page, pdfjs } from 'react-pdf';
 import Modal from './Modal';
-import { cn } from '@/lib/utils';
+import { cn } from '../../lib/utils';
 
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
