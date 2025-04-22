@@ -6,6 +6,9 @@ const nextConfig = {
     // Configuration pour pdfjs-dist
     config.resolve.alias.canvas = false;
     config.resolve.alias.encoding = false;
+    
+    // Configuration des alias de chemins
+    config.resolve.alias['@'] = __dirname;
 
     return config
   },
