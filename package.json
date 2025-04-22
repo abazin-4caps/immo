@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "prisma generate && next build",
+    "setup-pdf-worker": "node scripts/setup-pdf-worker.js",
+    "dev": "npm run setup-pdf-worker && next dev",
+    "build": "npm run setup-pdf-worker && prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate"
