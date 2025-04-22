@@ -53,36 +53,45 @@ export async function GET(
 
     console.log('Document found:', document);
 
-    // Extract public ID from the URL
-    // Example URL: https://res.cloudinary.com/dcahaqjyt/image/upload/v1710425987/dcahaqjyt/ima...
-    const urlParts = document.url.split('/upload/');
-    if (urlParts.length !== 2) {
+    // Determine resource type based on file extension
+    const isPDF = document.url.toLowerCase().endsWith('.pdf');
+    const resourceType = isPDF ? 'raw' : 'image';
+
+    // Generate timestamp for URL expiration (1 hour from now)
+    const timestamp = Math.floor(Date.now() / 1000) + 3600;
+
+    // Extract the version and public ID from the URL
+    // Example: https://res.cloudinary.com/dcahaqjyt/raw/upload/v1234567890/folder/file.pdf
+    const matches = document.url.match(/\/v(\d+)\/(.+)$/);
+    if (!matches) {
       console.error('Invalid Cloudinary URL format:', document.url);
       return new NextResponse('Invalid document URL', { status: 400 });
     }
 
-    const publicId = urlParts[1].split('/').slice(1).join('/').replace(/\.[^/.]+$/, "");
-    const isPDF = document.url.toLowerCase().endsWith('.pdf');
-    const resourceType = isPDF ? 'raw' : 'image';
+    const [_, version, path] = matches;
+    
+    // Parameters to sign
+    const params_to_sign = {
+      timestamp,
+      resource_type: resourceType,
+      type: 'upload',
+      version
+    };
 
-    console.log('Extracted info:', { publicId, resourceType });
-
-    // Generate signed URL for download
-    const signedUrl = cloudinary.utils.private_download_url(
-      publicId,
-      resourceType,
-      {
-        resource_type: resourceType,
-        type: 'upload',
-        attachment: true,
-        expires_at: Math.floor(Date.now() / 1000) + 3600, // URL expires in 1 hour
-      }
+    // Generate signature
+    const signature = cloudinary.utils.api_sign_request(
+      params_to_sign,
+      process.env.CLOUDINARY_API_SECRET || ''
     );
 
-    console.log('Generated download URL:', signedUrl);
+    // Construct the download URL with fl_attachment
+    const baseUrl = document.url.replace('/upload/', '/upload/fl_attachment/');
+    const downloadUrl = `${baseUrl}?timestamp=${timestamp}&signature=${signature}&api_key=${process.env.CLOUDINARY_API_KEY}`;
 
-    // Rediriger vers l'URL signée
-    return NextResponse.redirect(signedUrl);
+    console.log('Generated download URL:', downloadUrl);
+
+    // Rediriger vers l'URL de téléchargement
+    return NextResponse.redirect(downloadUrl);
   } catch (error) {
     console.error('Error in download route:', error);
     return new NextResponse(
