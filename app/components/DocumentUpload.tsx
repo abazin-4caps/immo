@@ -402,12 +402,10 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
                   />
                 ) : selectedDocument.type.includes('pdf') ? (
                   <div className="flex flex-col items-center justify-center min-h-[70vh] bg-gray-50 relative">
-                    <object
-                      data={selectedDocument.url}
-                      type="application/pdf"
-                      width="100%"
-                      height="70vh"
-                      className="rounded-lg"
+                    <iframe
+                      src={`${selectedDocument.url}#toolbar=0&navpanes=0`}
+                      className="w-full h-[70vh] rounded-lg"
+                      style={{ border: 'none' }}
                     >
                       <div className="flex flex-col items-center justify-center p-4">
                         <p className="text-gray-600 mb-4">Le PDF ne peut pas être affiché directement.</p>
@@ -419,7 +417,7 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
                           Télécharger le PDF
                         </button>
                       </div>
-                    </object>
+                    </iframe>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-[70vh] bg-gray-50">
