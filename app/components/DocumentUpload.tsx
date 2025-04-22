@@ -22,10 +22,10 @@ interface Document {
 interface DocumentUploadProps {
   projectId: string;
   documents: Document[];
-  onDocumentsChange: (documents: Document[]) => void;
+  onDocumentAdded: () => void;
 }
 
-export default function DocumentUpload({ projectId, documents, onDocumentsChange }: DocumentUploadProps) {
+export default function DocumentUpload({ projectId, documents, onDocumentAdded }: DocumentUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
@@ -50,8 +50,8 @@ export default function DocumentUpload({ projectId, documents, onDocumentsChange
         throw new Error('Erreur lors du téléchargement des documents');
       }
 
-      const newDocuments = await response.json();
-      onDocumentsChange([...documents, ...newDocuments]);
+      await response.json();
+      onDocumentAdded();
       toast.success('Documents téléchargés avec succès');
     } catch (err) {
       console.error('Erreur de téléchargement:', err);
@@ -60,7 +60,7 @@ export default function DocumentUpload({ projectId, documents, onDocumentsChange
     } finally {
       setIsUploading(false);
     }
-  }, [projectId, documents, onDocumentsChange]);
+  }, [projectId, onDocumentAdded]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -89,7 +89,7 @@ export default function DocumentUpload({ projectId, documents, onDocumentsChange
         throw new Error(errorData.message || 'Erreur lors de la suppression');
       }
 
-      onDocumentsChange(documents.filter(doc => doc.id !== documentId));
+      onDocumentAdded();
       toast.success('Document supprimé avec succès');
     } catch (err) {
       console.error('Erreur lors de la suppression:', err);
