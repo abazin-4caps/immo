@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const sourceFile = path.join(__dirname, '../node_modules/pdfjs-dist/build/pdf.worker.min.js');
-const targetFile = path.join(__dirname, '../public/pdf.worker.min.js');
+const sourceFile = path.join(__dirname, '../node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs');
+const targetFile = path.join(__dirname, '../public/pdf.worker.min.mjs');
 
 // Créer le dossier public s'il n'existe pas
 if (!fs.existsSync(path.dirname(targetFile))) {
