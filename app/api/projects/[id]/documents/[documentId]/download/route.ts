@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/auth.config';
 import prisma from '@/lib/prisma';
 import { v2 as cloudinary } from 'cloudinary';
+import { UploadApiOptions } from 'cloudinary';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,51 +54,51 @@ export async function GET(
 
     console.log('Document found:', document);
 
-    // Extract public ID and version from the URL
-    // Example: https://res.cloudinary.com/dcahaqjyt/raw/upload/v1234567890/folder/file.pdf
-    const urlParts = document.url.split('/upload/');
-    if (urlParts.length !== 2) {
-      console.error('Invalid Cloudinary URL format:', document.url);
+    // Extraire le public ID de l'URL Cloudinary
+    const matches = document.url.match(/\/upload\/(?:v\d+\/)?(.+)$/);
+    if (!matches) {
+      console.error('Could not extract public ID from URL:', document.url);
       return new NextResponse('Invalid document URL', { status: 400 });
     }
 
-    const pathParts = urlParts[1].split('/');
-    const version = pathParts[0].replace('v', '');
-    // Keep the extension in the public ID
-    const publicId = pathParts.slice(1).join('/');
-    const extension = publicId.split('.').pop()?.toLowerCase() || '';
-    
-    // Determine resource type from the original URL
-    const originalResourceType = document.url.split('/')[3]; // Get 'raw' or 'image' from the URL
-    const resourceType = originalResourceType === 'raw' ? 'raw' : 'image';
+    const publicId = matches[1];
+    const isPDF = publicId.toLowerCase().endsWith('.pdf');
 
-    console.log('Extracted info:', { publicId, version, resourceType, extension, originalResourceType });
-
-    // Generate timestamp for URL expiration (1 hour from now)
-    const timestamp = Math.floor(Date.now() / 1000) + 3600;
-
-    // Parameters to sign (in alphabetical order)
-    const params_to_sign = {
-      public_id: publicId,
-      resource_type: resourceType,
-      timestamp,
+    // Générer l'URL de téléchargement
+    const options: UploadApiOptions = {
+      resource_type: isPDF ? 'raw' : 'image',
       type: 'upload',
-      version
+      attachment: true,
+      flags: 'attachment',
+      secure: true,
+      sign_url: true,
+      expires_at: Math.floor(Date.now() / 1000) + 3600 // 1 heure
     };
 
-    // Generate signature
-    const signature = cloudinary.utils.api_sign_request(
-      params_to_sign,
-      process.env.CLOUDINARY_API_SECRET || ''
-    );
+    try {
+      const result = await new Promise((resolve, reject) => {
+        cloudinary.uploader.explicit(
+          publicId,
+          options,
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+      });
 
-    // Construct the download URL using the same resource type as the original URL
-    const downloadUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/upload/fl_attachment/v${version}/${publicId}?timestamp=${timestamp}&signature=${signature}&api_key=${process.env.CLOUDINARY_API_KEY}`;
+      // @ts-ignore
+      const secureUrl = result.secure_url;
+      console.log('Generated secure URL:', secureUrl);
 
-    console.log('Generated download URL:', downloadUrl);
-
-    // Rediriger vers l'URL de téléchargement
-    return NextResponse.redirect(downloadUrl);
+      return NextResponse.redirect(secureUrl);
+    } catch (cloudinaryError) {
+      console.error('Cloudinary API error:', cloudinaryError);
+      return new NextResponse(
+        'Error generating download URL',
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error('Error in download route:', error);
     return new NextResponse(
