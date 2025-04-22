@@ -68,4 +68,5 @@ async function setupWorker() {
 
 setupWorker().catch(error => {
   console.error('❌ Erreur inattendue:', error);
-  process.exit(1); 
+  process.exit(1);
+}); 
