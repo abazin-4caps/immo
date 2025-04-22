@@ -5,6 +5,17 @@ import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import DocumentUpload from '@/app/components/DocumentUpload'
+import { Document } from '@prisma/client'
+
+interface ProjectDocument {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  status: 'DRAFT' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED';
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 type Project = {
   id: string
@@ -16,13 +27,7 @@ type Project = {
   updatedAt: Date
 }
 
-type Document = {
-  id: string
-  name: string
-  type: string
-  url: string
-  createdAt: Date
-}
+type TabType = 'details' | 'documents';
 
 const statusColors = {
   DRAFT: 'bg-gray-100 text-gray-800',
@@ -30,7 +35,7 @@ const statusColors = {
   ON_HOLD: 'bg-yellow-100 text-yellow-800',
   COMPLETED: 'bg-blue-100 text-blue-800',
   CANCELLED: 'bg-red-100 text-red-800',
-}
+};
 
 const statusLabels = {
   DRAFT: 'Brouillon',
@@ -38,20 +43,43 @@ const statusLabels = {
   ON_HOLD: 'En pause',
   COMPLETED: 'Terminé',
   CANCELLED: 'Annulé',
-}
-
-type TabType = 'details' | 'documents';
+};
 
 export default function ProjectDetailsPage() {
   const { data: session } = useSession()
   const params = useParams()
   const router = useRouter()
   const [project, setProject] = useState<Project | null>(null)
-  const [documents, setDocuments] = useState<Document[]>([])
+  const [documents, setDocuments] = useState<ProjectDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [editedProject, setEditedProject] = useState<Project | null>(null)
   const [activeTab, setActiveTab] = useState<TabType>('details')
+  const [error, setError] = useState<string | null>(null)
+
+  const loadDocuments = async () => {
+    try {
+      const response = await fetch(`/api/projects/${params.id}/documents`)
+      if (!response.ok) {
+        throw new Error('Failed to load documents')
+      }
+      const data = await response.json()
+      // Conversion des dates en objets Date
+      const documentsWithDates = data.map((doc: any) => ({
+        ...doc,
+        createdAt: new Date(doc.createdAt),
+        updatedAt: new Date(doc.updatedAt)
+      }))
+      setDocuments(documentsWithDates)
+    } catch (error) {
+      console.error('Error loading documents:', error)
+      setError('Failed to load documents')
+    }
+  }
+
+  useEffect(() => {
+    loadDocuments();
+  }, [params.id]);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -59,8 +87,14 @@ export default function ProjectDetailsPage() {
         const response = await fetch(`/api/projects/${params.id}`)
         if (response.ok) {
           const data = await response.json()
-          setProject(data)
-          setEditedProject(data)
+          // Conversion des dates en objets Date
+          const projectWithDates = {
+            ...data,
+            createdAt: new Date(data.createdAt),
+            updatedAt: new Date(data.updatedAt)
+          }
+          setProject(projectWithDates)
+          setEditedProject(projectWithDates)
         } else {
           console.error('Erreur lors de la récupération du projet')
           router.push('/projects')
@@ -73,21 +107,8 @@ export default function ProjectDetailsPage() {
       }
     }
 
-    const fetchDocuments = async () => {
-      try {
-        const response = await fetch(`/api/projects/${params.id}/documents`)
-        if (response.ok) {
-          const data = await response.json()
-          setDocuments(data)
-        }
-      } catch (error) {
-        console.error('Erreur lors de la récupération des documents:', error)
-      }
-    }
-
     if (session && params.id) {
       fetchProject()
-      fetchDocuments()
     }
   }, [session, params.id, router])
 
@@ -122,7 +143,13 @@ export default function ProjectDetailsPage() {
       })
 
       if (response.ok) {
-        const updatedProject = await response.json()
+        const data = await response.json()
+        // Conversion des dates en objets Date
+        const updatedProject = {
+          ...data,
+          createdAt: new Date(data.createdAt),
+          updatedAt: new Date(data.updatedAt)
+        }
         setProject(updatedProject)
         setIsEditing(false)
       } else {
@@ -132,6 +159,48 @@ export default function ProjectDetailsPage() {
       console.error('Erreur lors de la mise à jour du projet:', error)
     }
   }
+
+  const handleUpload = async (files: File[]) => {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append('file', file);
+    });
+
+    try {
+      const response = await fetch(`/api/projects/${params.id}/documents`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors du téléchargement des documents');
+      }
+
+      await response.json();
+      loadDocuments(); // Rafraîchir la liste des documents
+    } catch (error) {
+      console.error('Erreur de téléchargement:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteDocument = async (documentId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${params.id}/documents/${documentId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erreur lors de la suppression');
+      }
+
+      loadDocuments(); // Rafraîchir la liste des documents
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      throw error;
+    }
+  };
 
   if (!session) {
     return (
@@ -366,13 +435,8 @@ export default function ProjectDetailsPage() {
               <DocumentUpload
                 projectId={project.id}
                 documents={documents}
-                onDocumentAdded={() => {
-                  // Rafraîchir la liste des documents
-                  fetch(`/api/projects/${params.id}/documents`)
-                    .then(response => response.json())
-                    .then(data => setDocuments(data))
-                    .catch(error => console.error('Erreur lors de la récupération des documents:', error))
-                }}
+                onUpload={handleUpload}
+                onDelete={handleDeleteDocument}
               />
             )}
           </div>
