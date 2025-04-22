@@ -51,34 +51,39 @@ export async function GET(
       return new NextResponse('Document not found', { status: 404 });
     }
 
-    // Extract public_id from Cloudinary URL
-    const match = document.url.match(/\/v\d+\/(.+?)\.([^.]+)$/);
-    if (!match) {
+    console.log('Document found:', document);
+
+    // Determine resource type based on file extension
+    const isPDF = document.url.toLowerCase().endsWith('.pdf');
+    const resourceType = isPDF ? 'raw' : 'image';
+
+    // Extract the path from the URL
+    const urlParts = document.url.split('/upload/');
+    if (urlParts.length !== 2) {
       console.error('Invalid Cloudinary URL format:', document.url);
       return new NextResponse('Invalid document URL', { status: 400 });
     }
 
-    const publicId = match[1];
-    const extension = match[2].toLowerCase();
-    const resourceType = extension === 'pdf' ? 'raw' : 'image';
+    const path = urlParts[1];
+    console.log('Generating signed URL for:', { path, resourceType, url: document.url });
 
-    console.log('Generating signed URL for:', { publicId, resourceType, url: document.url });
-
-    // Generate signed URL with explicit version
-    const signedUrl = cloudinary.utils.private_download_url(
-      publicId,
-      extension,
+    // Generate signed URL
+    const timestamp = Math.floor(Date.now() / 1000);
+    const signature = cloudinary.utils.api_sign_request(
       {
+        timestamp,
         resource_type: resourceType,
         type: 'upload',
-        expires_at: Math.floor(Date.now() / 1000) + 3600, // URL expires in 1 hour
-      }
+      },
+      process.env.CLOUDINARY_API_SECRET || ''
     );
 
-    console.log('Generated signed URL:', signedUrl);
+    const downloadUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/upload/${path}?timestamp=${timestamp}&signature=${signature}&api_key=${process.env.CLOUDINARY_API_KEY}`;
+
+    console.log('Generated download URL:', downloadUrl);
 
     // Rediriger vers l'URL signée
-    return NextResponse.redirect(signedUrl);
+    return NextResponse.redirect(downloadUrl);
   } catch (error) {
     console.error('Error in download route:', error);
     return new NextResponse(
