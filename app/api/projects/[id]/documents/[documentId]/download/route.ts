@@ -81,13 +81,18 @@ export async function GET(
       process.env.CLOUDINARY_API_SECRET || ''
     );
 
-    // Construct the download URL with attachment disposition
-    const downloadUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/upload/fl_attachment/v${version}/${path}?timestamp=${timestamp}&signature=${signature}&api_key=${process.env.CLOUDINARY_API_KEY}`;
+    // Construct the download URL
+    const downloadUrl = document.url.replace(
+      'https://res.cloudinary.com/',
+      `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/upload/fl_attachment/`
+    );
 
-    console.log('Generated download URL:', downloadUrl);
+    const finalUrl = `${downloadUrl}?timestamp=${timestamp}&signature=${signature}&api_key=${process.env.CLOUDINARY_API_KEY}`;
+
+    console.log('Generated download URL:', finalUrl);
 
     // Rediriger vers l'URL signée
-    return NextResponse.redirect(downloadUrl);
+    return NextResponse.redirect(finalUrl);
   } catch (error) {
     console.error('Error in download route:', error);
     return new NextResponse(
