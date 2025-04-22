@@ -1,68 +1,52 @@
-import { PrismaClient } from "@prisma/client"
-import CredentialsProvider from "next-auth/providers/credentials"
-import bcrypt from "bcryptjs"
-import { AuthOptions } from "next-auth"
-
-const prisma = new PrismaClient()
+import { AuthOptions } from 'next-auth';
+import { PrismaAdapter } from '@auth/prisma-adapter';
+import prisma from '../../../lib/prisma';
+import bcrypt from 'bcryptjs';
+import CredentialsProvider from 'next-auth/providers/credentials';
 
 export const authOptions: AuthOptions = {
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
-      name: "credentials",
+      name: 'credentials',
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Mot de passe", type: "password" }
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Informations de connexion requises')
+          throw new Error('Identifiants requis');
         }
 
         const user = await prisma.user.findUnique({
           where: {
             email: credentials.email
           }
-        })
+        });
 
-        if (!user || !user.password) {
-          throw new Error('Utilisateur non trouvé')
+        if (!user || !user?.hashedPassword) {
+          throw new Error('Identifiants invalides');
         }
 
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
+        const isCorrectPassword = await bcrypt.compare(
+          credentials.password,
+          user.hashedPassword
+        );
 
-        if (!isPasswordValid) {
-          throw new Error('Mot de passe incorrect')
+        if (!isCorrectPassword) {
+          throw new Error('Identifiants invalides');
         }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role
-        }
+        return user;
       }
     })
   ],
-  session: {
-    strategy: "jwt"
-  },
   pages: {
     signIn: '/auth/signin',
   },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = user.role
-        token.id = user.id
-      }
-      return token
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.role = token.role as string
-        session.user.id = token.id as string
-      }
-      return session
-    }
-  }
-} 
+  debug: process.env.NODE_ENV === 'development',
+  session: {
+    strategy: 'jwt',
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+}; 
