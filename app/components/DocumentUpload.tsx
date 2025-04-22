@@ -26,6 +26,7 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
   const [error, setError] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     setIsUploading(true);
@@ -34,7 +35,7 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
     try {
       const formData = new FormData();
       acceptedFiles.forEach((file) => {
-        formData.append('files', file);
+        formData.append('file', file);
       });
 
       const response = await fetch(`/api/projects/${projectId}/documents`, {
@@ -99,9 +100,32 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
     return <FaFile className="w-6 h-6 text-gray-500" />;
   };
 
-  const handlePreview = (document: Document) => {
+  const handlePreview = async (document: Document) => {
     setSelectedDocument(document);
     setIsPreviewOpen(true);
+
+    if (document.type.includes('pdf')) {
+      try {
+        const response = await fetch(`/api/projects/${projectId}/documents/${document.id}/download`);
+        if (!response.ok) {
+          throw new Error('Erreur lors du chargement du PDF');
+        }
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        setPdfUrl(url);
+      } catch (error) {
+        console.error('Erreur lors du chargement du PDF:', error);
+        toast.error('Erreur lors du chargement du PDF');
+      }
+    }
+  };
+
+  const handleClosePreview = () => {
+    setIsPreviewOpen(false);
+    if (pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
+    }
   };
 
   const formatDate = (date: Date) => {
@@ -174,17 +198,23 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
 
       <Modal
         isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
+        onClose={handleClosePreview}
         title={selectedDocument?.name || 'Aperçu du document'}
       >
         <div className="max-h-[80vh] overflow-y-auto">
           {selectedDocument && (
             selectedDocument.type.includes('pdf') ? (
-              <iframe
-                src={selectedDocument.url}
-                className="w-full h-[80vh] border-0"
-                title={selectedDocument.name}
-              />
+              pdfUrl ? (
+                <iframe
+                  src={pdfUrl}
+                  className="w-full h-[80vh] border-0"
+                  title={selectedDocument.name}
+                />
+              ) : (
+                <div className="flex justify-center items-center h-[80vh]">
+                  <p>Chargement du PDF...</p>
+                </div>
+              )
             ) : selectedDocument.type.includes('image') ? (
               <div className="flex justify-center">
                 <Image
