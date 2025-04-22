@@ -4,12 +4,6 @@ import { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { FiUpload, FiFile, FiTrash2, FiDownload, FiEye, FiGrid, FiList, FiFilter, FiSearch } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Document as PDFDocument, Page as PDFPage, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
-import 'react-pdf/dist/esm/Page/TextLayer.css';
-
-// Configuration de worker pour react-pdf
-pdfjs.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@5.1.91/build/pdf.worker.min.js';
 
 interface Document {
   id: string;
@@ -408,72 +402,13 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
                   />
                 ) : selectedDocument.type.includes('pdf') ? (
                   <div className="flex flex-col items-center justify-center min-h-[70vh] bg-gray-50 relative">
-                    {isLoadingPdf && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gray-50 bg-opacity-90">
-                        <div className="text-blue-600">Chargement du PDF...</div>
-                      </div>
-                    )}
-                    {pdfError ? (
-                      <div className="flex flex-col items-center justify-center">
-                        <div className="text-6xl mb-4">📄</div>
-                        <p className="text-lg text-gray-600 mb-4">{selectedDocument.name}</p>
-                        <p className="text-sm text-red-500 mb-6">Erreur lors du chargement du PDF</p>
-                        <button
-                          onClick={() => handleDownload(selectedDocument)}
-                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                          <FiDownload className="mr-2 h-5 w-5" />
-                          Télécharger le PDF
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="w-full max-w-4xl mx-auto">
-                        <PDFDocument
-                          file={selectedDocument.url}
-                          onLoadSuccess={({ numPages }) => {
-                            setNumPages(numPages);
-                            setIsLoadingPdf(false);
-                          }}
-                          onLoadError={(error) => {
-                            console.error('Error loading PDF:', error);
-                            setPdfError(error.message);
-                            setIsLoadingPdf(false);
-                          }}
-                          loading={() => {
-                            setIsLoadingPdf(true);
-                            return <div>Chargement...</div>;
-                          }}
-                        >
-                          <PDFPage
-                            pageNumber={pageNumber}
-                            renderTextLayer={true}
-                            renderAnnotationLayer={true}
-                            className="mx-auto"
-                          />
-                        </PDFDocument>
-                        {numPages && numPages > 1 && (
-                          <div className="flex items-center justify-center mt-4 space-x-4">
-                            <button
-                              onClick={() => setPageNumber(page => Math.max(1, page - 1))}
-                              disabled={pageNumber <= 1}
-                              className="px-3 py-1 bg-gray-100 rounded-md disabled:opacity-50"
-                            >
-                              Précédent
-                            </button>
-                            <span className="text-sm text-gray-600">
-                              Page {pageNumber} sur {numPages}
-                            </span>
-                            <button
-                              onClick={() => setPageNumber(page => Math.min(numPages, page + 1))}
-                              disabled={pageNumber >= numPages}
-                              className="px-3 py-1 bg-gray-100 rounded-md disabled:opacity-50"
-                            >
-                              Suivant
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    <embed
+                      src={selectedDocument.url}
+                      type="application/pdf"
+                      width="100%"
+                      height="70vh"
+                      className="rounded-lg"
+                    />
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-[70vh] bg-gray-50">
