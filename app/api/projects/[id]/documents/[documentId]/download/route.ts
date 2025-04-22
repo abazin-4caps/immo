@@ -53,11 +53,39 @@ export async function GET(
 
     console.log('Document found:', document);
 
-    // Récupérer le fichier depuis Cloudinary
+    // Extraire les informations de l'URL Cloudinary
+    const urlParts = document.url.split('/');
+    const resourceType = urlParts[3]; // 'image' ou 'raw'
+    const uploadIndex = urlParts.indexOf('upload');
+    const publicId = urlParts.slice(uploadIndex + 2).join('/');
+
+    console.log('Extracted info:', { publicId, resourceType });
+
+    // Obtenir une URL signée de Cloudinary
+    const timestamp = Math.floor(Date.now() / 1000);
+    const transformation = 'fl_attachment';
+    
+    const signedUrl = cloudinary.url(publicId, {
+      resource_type: resourceType as "image" | "raw",
+      type: 'upload',
+      sign_url: true,
+      secure: true,
+      transformation: [{ flags: 'attachment' }],
+      version: urlParts[uploadIndex + 1].replace('v', '')
+    });
+
+    console.log('Generated signed URL:', signedUrl);
+
+    // Récupérer le fichier avec l'URL signée
     try {
-      const response = await fetch(document.url);
+      const response = await fetch(signedUrl);
       
       if (!response.ok) {
+        console.error('Failed to fetch file:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: signedUrl
+        });
         throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
       }
 
@@ -76,7 +104,11 @@ export async function GET(
     } catch (fetchError) {
       console.error('Error fetching file from Cloudinary:', fetchError);
       return new NextResponse(
-        JSON.stringify({ error: 'Failed to fetch file', details: fetchError instanceof Error ? fetchError.message : 'Unknown error' }),
+        JSON.stringify({ 
+          error: 'Failed to fetch file', 
+          details: fetchError instanceof Error ? fetchError.message : 'Unknown error',
+          url: signedUrl
+        }),
         { 
           status: 502,
           headers: {
