@@ -53,28 +53,37 @@ export async function GET(
 
     console.log('Document found:', document);
 
-    // Extraire le public ID et le type de ressource de l'URL Cloudinary
+    // Extraire les informations de l'URL Cloudinary
     const urlParts = document.url.split('/');
     const resourceType = urlParts[3]; // 'image' ou 'raw'
     const uploadIndex = urlParts.indexOf('upload');
+    const version = urlParts[uploadIndex + 1]; // 'v1234567890'
     const publicId = urlParts.slice(uploadIndex + 2).join('/');
 
-    console.log('Extracted info:', { publicId, resourceType });
+    console.log('Extracted info:', { publicId, version, resourceType });
 
-    // Générer l'URL de téléchargement privée
-    const downloadUrl = cloudinary.utils.private_download_url(
-      publicId,
-      resourceType,
-      {
-        expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 heure
-        attachment: true
-      }
+    // Générer le timestamp et la signature
+    const timestamp = Math.floor(Date.now() / 1000) + 3600; // Expire dans 1 heure
+    const toSign = {
+      public_id: publicId,
+      timestamp,
+      type: 'upload',
+      version: version.replace('v', '')
+    };
+
+    const signature = cloudinary.utils.api_sign_request(
+      toSign,
+      process.env.CLOUDINARY_API_SECRET || ''
     );
 
-    console.log('Generated download URL:', downloadUrl);
+    // Construire l'URL de téléchargement
+    const downloadUrl = document.url.replace('/upload/', '/upload/fl_attachment/');
+    const finalUrl = `${downloadUrl}?timestamp=${timestamp}&signature=${signature}&api_key=${process.env.CLOUDINARY_API_KEY}`;
+
+    console.log('Generated download URL:', finalUrl);
 
     // Rediriger vers l'URL de téléchargement
-    return NextResponse.redirect(downloadUrl);
+    return NextResponse.redirect(finalUrl);
   } catch (error) {
     console.error('Error in download route:', error);
     return new NextResponse(
