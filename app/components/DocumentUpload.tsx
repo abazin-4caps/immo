@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Document as PDFDocument, Page as PDFPage, pdfjs } from 'react-pdf';
 import { FaFilePdf, FaFileImage, FaFile, FaTrash, FaEye } from 'react-icons/fa';
