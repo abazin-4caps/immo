@@ -403,9 +403,10 @@ export default function DocumentUpload({ projectId, documents, onDocumentAdded }
                 ) : selectedDocument.type.includes('pdf') ? (
                   <div className="flex flex-col items-center justify-center min-h-[70vh] bg-gray-50 relative">
                     <iframe
-                      src={`/api/projects/${projectId}/documents/${selectedDocument.id}/download`}
+                      src={selectedDocument.url + '?secure=true'}
                       className="w-full h-[70vh] rounded-lg"
                       style={{ border: 'none' }}
+                      sandbox="allow-same-origin allow-scripts allow-popups"
                     >
                       <div className="flex flex-col items-center justify-center p-4">
                         <p className="text-gray-600 mb-4">Le PDF ne peut pas être affiché directement.</p>
