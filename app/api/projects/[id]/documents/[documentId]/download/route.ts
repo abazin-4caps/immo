@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/auth.config';
 import prisma from '@/lib/prisma';
 import { v2 as cloudinary } from 'cloudinary';
-import { UploadApiOptions } from 'cloudinary';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,55 +53,36 @@ export async function GET(
 
     console.log('Document found:', document);
 
-    // Extraire le public ID de l'URL Cloudinary
-    const matches = document.url.match(/\/upload\/(?:v\d+\/)?(.+)$/);
-    if (!matches) {
-      console.error('Could not extract public ID from URL:', document.url);
-      return new NextResponse('Invalid document URL', { status: 400 });
-    }
+    // Extraire le public ID et le type de ressource de l'URL Cloudinary
+    const urlParts = document.url.split('/');
+    const resourceType = urlParts[3]; // 'image' ou 'raw'
+    const uploadIndex = urlParts.indexOf('upload');
+    const publicId = urlParts.slice(uploadIndex + 2).join('/');
 
-    const publicId = matches[1];
-    const isPDF = publicId.toLowerCase().endsWith('.pdf');
+    console.log('Extracted info:', { publicId, resourceType });
 
-    // Générer l'URL de téléchargement
-    const options: UploadApiOptions = {
-      resource_type: isPDF ? 'raw' : 'image',
-      type: 'upload',
-      attachment: true,
-      flags: 'attachment',
-      secure: true,
-      sign_url: true,
-      expires_at: Math.floor(Date.now() / 1000) + 3600 // 1 heure
-    };
+    // Générer l'URL de téléchargement privée
+    const downloadUrl = cloudinary.utils.private_download_url(
+      publicId,
+      resourceType,
+      {
+        expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 heure
+        attachment: true
+      }
+    );
 
-    try {
-      const result = await new Promise((resolve, reject) => {
-        cloudinary.uploader.explicit(
-          publicId,
-          options,
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        );
-      });
+    console.log('Generated download URL:', downloadUrl);
 
-      // @ts-ignore
-      const secureUrl = result.secure_url;
-      console.log('Generated secure URL:', secureUrl);
-
-      return NextResponse.redirect(secureUrl);
-    } catch (cloudinaryError) {
-      console.error('Cloudinary API error:', cloudinaryError);
-      return new NextResponse(
-        'Error generating download URL',
-        { status: 500 }
-      );
-    }
+    // Rediriger vers l'URL de téléchargement
+    return NextResponse.redirect(downloadUrl);
   } catch (error) {
     console.error('Error in download route:', error);
     return new NextResponse(
-      JSON.stringify({ error: 'Internal Server Error', details: error instanceof Error ? error.message : 'Unknown error' }), 
+      JSON.stringify({ 
+        error: 'Internal Server Error', 
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      }), 
       { 
         status: 500,
         headers: {
