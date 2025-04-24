@@ -1,77 +1,52 @@
-import { PrismaAdapter } from "@auth/prisma-adapter"
-import { NextAuthOptions } from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
-import { compare } from "bcryptjs"
-import prisma from "@/lib/prisma"
+import { AuthOptions } from 'next-auth';
+import { PrismaAdapter } from '@auth/prisma-adapter';
+import prisma from '../../../lib/prisma';
+import bcrypt from 'bcryptjs';
+import CredentialsProvider from 'next-auth/providers/credentials';
 
-export const authOptions: NextAuthOptions = {
-  session: {
-    strategy: "jwt"
-  },
-  adapter: PrismaAdapter(prisma) as any, // Temporairement typé comme 'any' pour résoudre l'erreur
+export const authOptions: AuthOptions = {
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: 'credentials',
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null
+          throw new Error('Identifiants requis');
         }
 
         const user = await prisma.user.findUnique({
           where: {
             email: credentials.email
           }
-        })
+        });
 
-        if (!user || !user.password) {
-          return null
+        if (!user || !user?.hashedPassword) {
+          throw new Error('Identifiants invalides');
         }
 
-        const isPasswordValid = await compare(
+        const isCorrectPassword = await bcrypt.compare(
           credentials.password,
-          user.password
-        )
+          user.hashedPassword
+        );
 
-        if (!isPasswordValid) {
-          return null
+        if (!isCorrectPassword) {
+          throw new Error('Identifiants invalides');
         }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role
-        }
+        return user;
       }
     })
   ],
-  callbacks: {
-    session: ({ session, token }) => {
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          id: token.id,
-          role: token.role
-        }
-      }
-    },
-    jwt: ({ token, user }) => {
-      if (user) {
-        return {
-          ...token,
-          id: user.id,
-          role: user.role
-        }
-      }
-      return token
-    }
-  },
   pages: {
-    signIn: '/auth/signin'
-  }
-} 
+    signIn: '/auth/signin',
+  },
+  debug: process.env.NODE_ENV === 'development',
+  session: {
+    strategy: 'jwt',
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+}; 
