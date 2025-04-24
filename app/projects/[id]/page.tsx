@@ -7,16 +7,6 @@ import Link from 'next/link'
 import DocumentUpload from '../../components/DocumentUpload'
 import { Document } from '@prisma/client'
 
-interface ProjectDocument {
-  id: string;
-  name: string;
-  url: string;
-  type: string;
-  status: 'DRAFT' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED';
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 type Project = {
   id: string
   title: string
@@ -50,7 +40,7 @@ export default function ProjectDetailsPage() {
   const params = useParams()
   const router = useRouter()
   const [project, setProject] = useState<Project | null>(null)
-  const [documents, setDocuments] = useState<ProjectDocument[]>([])
+  const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [editedProject, setEditedProject] = useState<Project | null>(null)
@@ -64,12 +54,11 @@ export default function ProjectDetailsPage() {
         throw new Error('Failed to load documents')
       }
       const data = await response.json()
-      // Conversion des dates en objets Date
       const documentsWithDates = data.map((doc: any) => ({
         ...doc,
         createdAt: new Date(doc.createdAt),
         updatedAt: new Date(doc.updatedAt)
-      }))
+      })) as Document[]
       setDocuments(documentsWithDates)
     } catch (error) {
       console.error('Error loading documents:', error)
