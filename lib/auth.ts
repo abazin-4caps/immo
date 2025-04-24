@@ -1,10 +1,15 @@
-import bcrypt from 'bcryptjs'
+import { auth } from '@/app/api/auth/auth.config';
 
-export async function hashPassword(password: string) {
-  const salt = await bcrypt.genSalt(10)
-  return bcrypt.hash(password, salt)
+export async function getSession() {
+  return await auth();
 }
 
-export async function verifyPassword(password: string, hashedPassword: string) {
-  return bcrypt.compare(password, hashedPassword)
+export async function getCurrentUser() {
+  const session = await auth();
+  return session?.user;
+}
+
+export async function isAuthenticated() {
+  const session = await auth();
+  return !!session?.user;
 } 
