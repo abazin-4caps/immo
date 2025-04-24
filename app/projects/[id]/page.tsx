@@ -7,6 +7,16 @@ import Link from 'next/link'
 import DocumentUpload from '../../components/DocumentUpload'
 import { Document } from '@prisma/client'
 
+interface ProjectDocument extends Document {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  projectId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 type Project = {
   id: string
   title: string
@@ -40,7 +50,7 @@ export default function ProjectDetailsPage() {
   const params = useParams()
   const router = useRouter()
   const [project, setProject] = useState<Project | null>(null)
-  const [documents, setDocuments] = useState<Document[]>([])
+  const [documents, setDocuments] = useState<ProjectDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [editedProject, setEditedProject] = useState<Project | null>(null)
@@ -58,7 +68,7 @@ export default function ProjectDetailsPage() {
         ...doc,
         createdAt: new Date(doc.createdAt),
         updatedAt: new Date(doc.updatedAt)
-      })) as Document[]
+      })) as ProjectDocument[]
       setDocuments(documentsWithDates)
     } catch (error) {
       console.error('Error loading documents:', error)
