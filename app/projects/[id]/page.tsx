@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/auth.config';
+import { auth } from '@/app/api/auth/auth.config';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import prisma from '@/lib/prisma';
@@ -52,9 +51,7 @@ const statusLabels: Record<ProjectStatus, string> = {
 } as const;
 
 export default async function ProjectDetailsPage({ params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions) as Session & {
-    user: { id: string }
-  };
+  const session = await auth();
 
   if (!session) {
     redirect('/auth/signin');

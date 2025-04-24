@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/auth.config'
+import { auth } from '@/app/api/auth/auth.config'
 import prisma from '@/lib/prisma'
 
 export async function GET(
@@ -8,7 +7,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session) {
       return new NextResponse(
@@ -73,7 +72,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session) {
       return new NextResponse(
@@ -147,7 +146,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session) {
       return new NextResponse(
@@ -175,6 +174,22 @@ export async function DELETE(
     return new NextResponse(null, { status: 204 })
   } catch (error) {
     console.error('Erreur lors de la suppression du projet:', error)
+    return new NextResponse(
+      JSON.stringify({ error: 'Erreur serveur' }),
+      { status: 500 }
+    )
+  }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await auth()
+    // ... existing code ...
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du projet:', error)
     return new NextResponse(
       JSON.stringify({ error: 'Erreur serveur' }),
       { status: 500 }

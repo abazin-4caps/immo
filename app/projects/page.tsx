@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/auth.config';
+import { auth } from '@/app/api/auth/auth.config';
 import { redirect } from 'next/navigation';
 import Dashboard from '@/components/Dashboard';
 import prisma from '@/lib/prisma';
@@ -21,7 +20,7 @@ type Project = {
 };
 
 export default async function ProjectsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session) {
     redirect('/auth/signin');

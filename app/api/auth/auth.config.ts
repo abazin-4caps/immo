@@ -14,28 +14,28 @@ export const authConfig = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' }
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Identifiants requis');
+          return null;
         }
 
         const user = await prisma.user.findUnique({
           where: {
-            email: credentials.email
+            email: credentials.email as string
           }
         });
 
-        if (!user || !user?.hashedPassword) {
-          throw new Error('Identifiants invalides');
+        if (!user || !user?.password) {
+          return null;
         }
 
         const isCorrectPassword = await bcrypt.compare(
-          credentials.password,
-          user.hashedPassword
+          credentials.password as string,
+          user.password
         );
 
         if (!isCorrectPassword) {
-          throw new Error('Identifiants invalides');
+          return null;
         }
 
         return {
@@ -43,6 +43,7 @@ export const authConfig = {
           email: user.email,
           name: user.name,
           image: user.image,
+          role: user.role
         };
       }
     })
@@ -71,4 +72,7 @@ export const authConfig = {
   secret: process.env.NEXTAUTH_SECRET,
 } satisfies NextAuthConfig;
 
-export const { handlers, auth, signIn, signOut } = NextAuth(authConfig); 
+export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+
+// Export auth options for server-side authentication
+export const { GET, POST } = handlers; 

@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/auth.config';
+import { auth } from '@/app/api/auth/auth.config';
 import prisma from '@/lib/prisma';
 import { v2 as cloudinary } from 'cloudinary';
 
 export const dynamic = 'force-dynamic';
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
@@ -19,7 +18,7 @@ export async function GET(
   console.log('Route de téléchargement appelée avec les paramètres:', params);
   
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       console.log('Tentative de téléchargement sans authentification');
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
@@ -77,7 +76,7 @@ export async function GET(
         process.env.CLOUDINARY_API_SECRET || ''
       );
 
-      const downloadUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/upload/fl_attachment/${version}/${publicId}?timestamp=${timestamp}&signature=${signature}&api_key=${process.env.CLOUDINARY_API_KEY}`;
+      const downloadUrl = `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload/fl_attachment/${version}/${publicId}?timestamp=${timestamp}&signature=${signature}&api_key=${process.env.CLOUDINARY_API_KEY}`;
       console.log('URL de téléchargement générée:', downloadUrl);
 
       // Rediriger vers l'URL de téléchargement
